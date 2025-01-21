@@ -1,6 +1,6 @@
 import { configDotenv } from "dotenv";
-import { createToken } from '../helpers/jwt.js';
-import jwt from 'jsonwebtoken'
+import { createToken, decodeToken } from '../helpers/jwt.js';
+
 configDotenv();
 
 export function tokenjwt(payload, time){
@@ -8,14 +8,26 @@ export function tokenjwt(payload, time){
 }
 
 export function desencriptar(req, res, next){
-    const key = process.env.KEY;
-    const authtoken = req.headers.authorization;
-    if( !authtoken ) return res.send('token no proporcionado')
-    const token = authtoken.split(' ')[1];
-    jwt.verify(token, key, (err, data)=>{
-        if(err) return  res.send('token invalido')
+    
+    const token = req.headers.authorization?.split(' ')[1]; 
+    if (!token) {
+        return res.status(401).json({ 
+            ok: false, 
+            message: 'Token no proporcionado' 
+        });
+    }
 
-        req.user = data
-        next()
-    })
+    const result = decodeToken(token);
+
+    if (!result.ok) {
+        return res.status(403).json({ 
+            ok: false, 
+            message: 'Token inválido o expirado', 
+            error: result.error 
+        });
+    }
+
+    req.user = result.payload;
+    next(); 
+
 }
