@@ -6,8 +6,9 @@ import { configDotenv } from "dotenv";
 import jwt from 'jsonwebtoken';
 configDotenv();
 
+// MVC = Modelo, Vista, Controlador
 
-
+// iniciar sesion con google
 export async function register(req, res) {
 
     try {
@@ -16,8 +17,8 @@ export async function register(req, res) {
         if(!name) return res.send('El nombre es requerido')
         if(!email) return res.send('El correo es requerido')
         if(!password) return res.send('La contraseña es requerida')
-        if(!password2) return res.send('La contraseña es requerida')
-        if( password !== password2) return res.send(' Las contraseñas no coinciden ')
+        // if(!password2) return res.send('La contraseña es requerida')
+        // if( password !== password2) return res.send(' Las contraseñas no coinciden ')
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // expresiones regulares
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
@@ -29,7 +30,7 @@ export async function register(req, res) {
         if(findUser) return res.send('El correo ya existe')
 
         const newUser = await Users.create(req.body);
-        const token = tokenjwt(newUser)
+        const token = tokenjwt(newUser, '3600s')
         await sendVerifyEmail(email, token)
 
         return res.status(201).send(newUser)
@@ -47,12 +48,13 @@ export async function login(req,res){
         const findUser = await Users.findOne({email})
         if(!findUser) return res.send(' No existe una cuenta con ese correo ')
 
-        if(!findUser.active) return res.send('Por favor verifica tu cuenta primero')
+        // if(!findUser.active) return res.send('Por favor verifica tu cuenta primero')
         const esValida = await bcrypt.compare(password, findUser.password);
         if(!esValida) return res.send('Contraseña incorrecta ')
 
-        const token = tokenjwt({email})
-        return res.send(token)
+        const token = await tokenjwt({email}, '1h')
+        console.log(token);
+        return res.status(200).send(token)
         
     } catch (error) {
         console.log(error)
@@ -80,7 +82,7 @@ export async function verifyAccount(req,res) {
     return res.send('Correo verificado!')
     
   } catch (error) {
-    return res.send('error', error)
+    return res.status(500).send('error', error)
   }
     
 }
